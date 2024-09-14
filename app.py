@@ -10,19 +10,21 @@ cohere_api_key = '9fO95BVy8czaT6cHASo7ykpHVYHu0dpasyBJvB7W'
 co = cohere.Client(cohere_api_key)
 @st.cache_data
 # Function to extract tables from the PDF
-def extract_tables_from_pdf(pdf_path, pages='all'):
+def extract_tables_from_pdf(pdf_path, start_page,end_page):
+    pages = f"{start_page}-{end_page}"
     tables = read_pdf(pdf_path, pages=pages, multiple_tables=True)
     return tables
 
 @st.cache_data
 # Function to extract text from the PDF
-def extract_text_from_pdf(pdf_path):
+def extract_text_from_pdf(pdf_path,start,end):
     try:
         text = ""
         with fitz.open(pdf_path) as pdf:
             for page_num in range(pdf.page_count):
-                page = pdf.load_page(page_num)  # Correct way to load each page
-                text += page.get_text("text") + "\n"
+                if page_num>=start  and page_num<end:
+                    page = pdf.load_page(page_num)  # Correct way to load each page
+                    text += page.get_text("text") + "\n"
         return text
     except Exception as e:
         st.error(f"Error extracting text: {e}")
@@ -33,7 +35,7 @@ def call_llm(prompt):
         response = co.generate(
             model='command-xlarge-nightly',
             prompt=prompt,
-            max_tokens=150,
+            max_tokens=100000,
             temperature=0.7
         )
         return response.generations[0].text.strip()
@@ -60,8 +62,8 @@ def generate_comparison(table1, table2):
 st.title("Multi-PDF Extractor and LLM Analyzer")
 
 # File uploaders for two PDFs
-uploaded_file_1 = st.file_uploader("Upload the first PDF file", type="pdf", key="pdf1")
-uploaded_file_2 = st.file_uploader("Upload the second PDF file", type="pdf", key="pdf2")
+uploaded_file_1 = st.file_uploader("Upload the TCS Report PDF file", type="pdf", key="pdf1")
+uploaded_file_2 = st.file_uploader("Upload the Infosys Report PDF file", type="pdf", key="pdf2")
 
 # Processing the PDFs if both are uploaded
 if uploaded_file_1 and uploaded_file_2:
@@ -74,11 +76,11 @@ if uploaded_file_1 and uploaded_file_2:
     # Extract text and tables from both PDFs
     st.write("Extracting content from both PDFs...")
     
-    text_1 = extract_text_from_pdf("uploaded_pdf_1.pdf")
-    tables_1 = extract_tables_from_pdf("uploaded_pdf_1.pdf")
+    text_1 = extract_text_from_pdf("uploaded_pdf_1.pdf",11,307)
+    tables_1 = extract_tables_from_pdf ("uploaded_pdf_1.pdf",11,307)
     
-    text_2 = extract_text_from_pdf("uploaded_pdf_2.pdf")
-    tables_2 = extract_tables_from_pdf("uploaded_pdf_2.pdf")
+    text_2 = extract_text_from_pdf("uploaded_pdf_2.pdf",33,340)
+    tables_2 = extract_tables_from_pdf("uploaded_pdf_2.pdf",33,340)
 
     # Display extracted text from both PDFs
     # st.subheader("Extracted Text from PDF 1")
